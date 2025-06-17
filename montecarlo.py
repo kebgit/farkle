@@ -2,17 +2,23 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 
-
+score_bins = np.linspace(-1, 10000, 50)
 
 dice_left = 6
 bank = 0
 hand = []
+busted = False
+
 four_of_a_kind_points = 1000
 five_of_a_kind_points = 2000
 six_of_a_kind_points = 3000
 straight_points = 1500
 three_pairs_points = 1500
 two_triples_points = 2500
+
+dice_left_on_bust = []
+dice_rolled = []
+
 
 def reset_hand():
   global hand
@@ -37,7 +43,7 @@ def roll_hand():
   global bank
   for i in range(dice_left):
     hand.append(roll())
-  print(hand)
+  # print(hand)
 
 # def collect_points():
   # run all checks
@@ -69,82 +75,160 @@ def roll_hand():
   # combination of taking 5s or not, and when to stop rolling, and what score threshold to stop rolling
   # never backing out before 1 or 2 or 3 hot dice resets
 
-# check for basic scores: 1s, and multiples
-def check():
+def check_take_all():
   global bank
-  bank = 0
+  global dice_left
+  global busted
+  global dice_left_on_bust
+  global dice_rolled
+
+  dice_rolled.append(dice_left)
+
+  roll_score = 0
   for i in range(6):
     count[i] = hand.count(i)
 
   for n in count.keys():
     if count[n] < 3:
       if n == 1:
-        bank += count[n]*100
+        roll_score += count[n]*100
+        dice_left -= count[n]
       if n == 5:
-        bank += count[n]*50
+        roll_score += count[n]*50
+        dice_left -= count[n]
     elif count[n] == 3:
       if n == 1:
-        bank += 300
+        roll_score += 300
       else:
-        bank += n*100
+        roll_score += n*100
+      dice_left -= count[n]
     elif count[n] == 4:
-      bank += four_of_a_kind_points
+      roll_score += four_of_a_kind_points
+      dice_left -= count[n]
     elif count[n] == 5:
-      bank += five_of_a_kind_points
+      roll_score += five_of_a_kind_points
+      dice_left -= count[n]
     else:
-      bank += six_of_a_kind_points
+      roll_score += six_of_a_kind_points
 
   # check for three pairs
   if list(count.values()).count(2) == 3:
-    bank += three_pairs_points
+    roll_score += three_pairs_points
   
   # check for two triples
   if list(count.values()).count(3) == 2:
-    bank += two_triples_points
+    roll_score += two_triples_points
 
   # check for straights
   if list(count.values()).count(1) == 6:
-    bank += straight_points
+    roll_score += straight_points
 
-  return(bank)
+  if roll_score == 0:
+    # print("YOU BUSTED!!!!")
+    busted = True
+    dice_left_on_bust.append(dice_left)
 
-score_outcomes = {
-  0:0,
-  99:0,
-  199:0,
-  299:0,
-  399:0,
-  499:0,
-  749:0,
-  999:0,
-  1499:0,
-  1999:0,
-  2499:0,
-  2999:0
-}
+  if dice_left == 0:
+    # print("Hot dice!")
+    dice_left = 6
+
+  bank = bank+roll_score
+  # print(f'Bank: {bank}')
+  # print(f'Dice left: {dice_left}')
+  
+
+
+
+# def check_take_min: reorganize to check for 5s last, have a "need points" boolean that turns off if any other condition has been met
+# if not then the
+
+scores_all_in = []
+
+
+def play_round():
+  global scores_all_in
+  global bank
+  while busted == False:
+    roll_hand()
+    check_take_all()
+  scores_all_in.append(bank)
+
+def reset_round():
+    global busted
+    global dice_left
+    global bank
+    global hand
+    busted = False
+    dice_left = 6
+    bank = 0
+    hand = []
+
 
 N = 1000000
 for i in range(N):
-  roll_hand()
-  score = check()
-  print(score)
-  for n in score_outcomes.keys():
-    if score>n:
-      score_outcomes[n]+= (1/N)*100
-      # value in %
+  play_round()
+  reset_round()
 
-print(score_outcomes)
+# print(scores_all_in)
+print(max(scores_all_in))
 
-xvalues = score_outcomes.keys()
-yvalues = score_outcomes.values()
+# print(dice_left_on_bust)
 
-plt.plot(xvalues,yvalues)
-plt.xlabel('Score Reached')
-plt.ylabel('% of rolls')
-plt.title(f'First Roll Raw Scores: N = {N}')
+plt.hist(dice_rolled)
+plt.xlabel('Dice Rolled')
+plt.ylabel('Occurances')
+plt.title(f'"Take-All Strategy" (N = {N})')
 plt.xlim(left=0)
-plt.ylim(bottom=0)
 plt.show()
+
+plt.hist(dice_left_on_bust)
+plt.xlabel('Dice Left on Bust')
+plt.ylabel('Occurances')
+plt.title(f'"Take-All Strategy" (N = {N})')
+plt.xlim(left=0)
+plt.show()
+
+plt.hist(scores_all_in, bins = score_bins)
+plt.xlabel('Bust Score')
+plt.ylabel('Occurances')
+plt.title(f'"Take-All Strategy" (N = {N})')
+plt.xlim(left=0)
+plt.show()
+
+
+
+ 
+
+
+# old
+# N = 10
+# for i in range(N):
+#   roll_hand()
+#   score = check_take_all()
+#   print(score)
+#   for n in score_outcomes.keys():
+#     if score>n:
+#       score_outcomes[n]+= (1/N)*100
+#       # value in %
+
+# print(score_outcomes)
+
+
+
+# PLOT OUTCOMES
+
+# xvalues = score_outcomes.keys()
+# yvalues = score_outcomes.values()
+
+# plt.plot(xvalues,yvalues)
+# plt.xlabel('Score Reached')
+# plt.ylabel('% of rolls')
+# plt.title(f'First Roll Raw Scores: N = {N}')
+# plt.xlim(left=0)
+# plt.ylim(bottom=0)
+# plt.show()
+
+
 
 # roll_hand()
 # check()
