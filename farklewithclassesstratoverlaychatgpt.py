@@ -283,42 +283,53 @@ class Farkle:
       return self.turns, self.total_score
 
 
-thresholds = range(100, 1050, 50)  # example thresholds from 100 to 1800 by 200
-num_games = 10000  # number of simulated games per threshold
+# Mainly written by ChatGPT V
 
-results = []
+strategies = [1, 2, 3]
+strategy_labels = {1: "Take-All", 2: "Min Fives, Max Ones", 3: "Min Fives, Min Ones"}
+thresholds = range(100, 1050, 50)
+num_games = 10000
 
-for threshold in thresholds:
-    turns_list = []
-    for _ in range(num_games):
-        game = Farkle(cashout_threshold=threshold, strategy=STRATEGY)
-        turns, score = game.play_game()
-        turns_list.append(turns)
-    avg_turns = np.mean(turns_list)
-    results.append((threshold, avg_turns))
-    print(f"Threshold {threshold}: Average turns to reach {game.score_target} = {avg_turns:.2f}")
+results_by_strategy = {}
 
-# Plot results
-thresholds, avg_turns = zip(*results)
-plt.plot(thresholds, avg_turns, marker='o')
+for strategy in strategies:
+    avg_turns_list = []
+    for threshold in thresholds:
+        turns_list = []
+        for _ in range(num_games):
+            game = Farkle(cashout_threshold=threshold, strategy=strategy)
+            turns, score = game.play_game()
+            turns_list.append(turns)
+        avg_turns = np.mean(turns_list)
+        avg_turns_list.append(avg_turns)
+        print(f"Strategy {strategy_labels[strategy]}, Threshold {threshold}: Avg Turns = {avg_turns:.2f}")
+    results_by_strategy[strategy] = avg_turns_list
+
+# Plotting all strategies
+plt.figure(figsize=(10, 6))
+for strategy in strategies:
+    plt.plot(thresholds, results_by_strategy[strategy], marker='o', label=strategy_labels[strategy])
+
 plt.xlabel('Bank Threshold')
 plt.ylabel(f'Average Turns to Reach {game.score_target} Points')
-plt.title(f'Farkle Risk Threshold Effects with {game.strategies[game.strategy]} Strategy - (N={num_games})')
+plt.title(f'Farkle Strategy Comparison (N={num_games})')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
 
+# Personal Labels
 
-# Take All Plots
-# plt.annotate("No-Balls Valley",
-#               xy=(275, 23.5), 
-#               xytext=(200, 28), 
-#               arrowprops=dict(arrowstyle='->'),
-#               fontsize=12,
-#               color='black')
-# plt.annotate("Mt. Bust",
-#               xy=(950, 30), 
-#               xytext=(750, 26), 
-#               arrowprops=dict(arrowstyle='->'),
-#               fontsize=12,
-#               color='black')
-              
+plt.annotate("No-Balls Valley",
+              xy=(275, 24), 
+              xytext=(210, 31), 
+              arrowprops=dict(arrowstyle='->'),
+              fontsize=12,
+              color='black')
+plt.annotate("Mt. Bust",
+              xy=(700, 34), 
+              xytext=(410, 35), 
+              arrowprops=dict(arrowstyle='->'),
+              fontsize=12,
+              color='black')
 
 plt.show()
