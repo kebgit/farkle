@@ -6,6 +6,10 @@ score_bins = np.linspace(-1, 10000, 50)
 
 dice_left = 6
 bank = 0
+turns = 0
+cashout_threshold = 500
+cashout_status = 0
+total_score = 0
 hand = []
 busted = False
 
@@ -43,7 +47,7 @@ def roll_hand():
   global bank
   for i in range(dice_left):
     hand.append(roll())
-  # print(hand)
+  print(hand)
 
 # def collect_points():
   # run all checks
@@ -67,11 +71,10 @@ def roll_hand():
   # can Create strategy then run MC on different parameters and strategies
   # can also create ML: there are only certain decisions to make after each roll, therefore it can take data of what 
 
-
 # potential strategies:
   # take all the points you can get all the time
   # do not take 5s
-  # only roll with 1,2,3,4,5 dice remaining
+  # only roll with 2,3,4,5,6 dice remaining
   # combination of taking 5s or not, and when to stop rolling, and what score threshold to stop rolling
   # never backing out before 1 or 2 or 3 hot dice resets
 
@@ -81,11 +84,19 @@ def check_take_all():
   global busted
   global dice_left_on_bust
   global dice_rolled
+  global total_score
+  global cashout_status
+
 
   dice_rolled.append(dice_left)
 
   roll_score = 0
-  for i in range(6):
+
+  # Unnecessary?
+  for i in count:
+    count[i] = 0
+
+  for i in range(1,7):
     count[i] = hand.count(i)
 
   for n in count.keys():
@@ -114,41 +125,56 @@ def check_take_all():
   # check for three pairs
   if list(count.values()).count(2) == 3:
     roll_score += three_pairs_points
+    # account for the 2 ones if one of the pairs is 1
+    if count[1] == 2:
+      roll_score -= 200
   
   # check for two triples
   if list(count.values()).count(3) == 2:
     roll_score += two_triples_points
+  # account for the 3 ones if the triple is 1s
+  if count[1] == 3:
+    roll_score -= 300
 
   # check for straights
   if list(count.values()).count(1) == 6:
-    roll_score += straight_points
+    roll_score += (straight_points-100-50)
+  # account for the 1 and the 5 in the straight
 
   if roll_score == 0:
-    # print("YOU BUSTED!!!!")
+    print("\nBUST")
     busted = True
+    bank = 0
     dice_left_on_bust.append(dice_left)
 
+
   if dice_left == 0:
-    # print("Hot dice!")
+    print("Hot dice!")
     dice_left = 6
 
   bank = bank+roll_score
-  # print(f'Bank: {bank}')
-  # print(f'Dice left: {dice_left}')
-  
+  if busted == False:
+    print(f'Bank: {bank}')
+    print(f'Dice left: {dice_left}')
+
+  # should also cash out if bank is less than end_game_score - total_score
+
+  if bank >= cashout_threshold or total_score + bank >= end_game_score:
+    cashout_status = 1
+    print("\nCashed Out")
 
 
 
 # def check_take_min: reorganize to check for 5s last, have a "need points" boolean that turns off if any other condition has been met
-# if not then the
+  # if not then the
 
 scores_all_in = []
-
 
 def play_round():
   global scores_all_in
   global bank
-  while busted == False:
+  global total_score
+  while busted == False and cashout_status == 0:
     roll_hand()
     check_take_all()
   scores_all_in.append(bank)
@@ -158,42 +184,82 @@ def reset_round():
     global dice_left
     global bank
     global hand
+    global cashout_status
+    global total_score
+    global turns
+
+    if cashout_status == 1 or busted == True:
+      total_score += bank
+      turns += 1
     busted = False
     dice_left = 6
     bank = 0
     hand = []
+    cashout_status = 0
 
 
-N = 1000000
-for i in range(N):
-  play_round()
-  reset_round()
+games = 1000000
+
+
+
+
+end_game_score = 10000
+rounds_needed = 0
+rounds_needed_acc = []
+
+
+
+for i in range(games):
+  while total_score < end_game_score:
+    print('\n\n\n')
+    play_round()
+    rounds_needed += 1
+    reset_round()
+    print(f'Total Score: {total_score}')
+    print(f'Turns played: {turns}')
+  print(f"\n\n\n\n GAME #{i} ENDED \n\n\n\n")
+  rounds_needed_acc.append(rounds_needed)
+  rounds_needed = 0
+  total_score = 0
+  turns = 0
+
+print(rounds_needed_acc)
+
+
+
 
 # print(scores_all_in)
-print(max(scores_all_in))
+# print(max(scores_all_in))
 
 # print(dice_left_on_bust)
 
-plt.hist(dice_rolled)
-plt.xlabel('Dice Rolled')
+plt.hist(rounds_needed_acc)
+plt.xlabel(f'Rounds Needed to Reach {end_game_score} Points')
 plt.ylabel('Occurances')
 plt.title(f'"Take-All Strategy" (N = {N})')
-plt.xlim(left=0)
+# plt.xlim(left=0)
 plt.show()
 
-plt.hist(dice_left_on_bust)
-plt.xlabel('Dice Left on Bust')
-plt.ylabel('Occurances')
-plt.title(f'"Take-All Strategy" (N = {N})')
-plt.xlim(left=0)
-plt.show()
+# plt.hist(dice_rolled)
+# plt.xlabel('Dice Rolled')
+# plt.ylabel('Occurances')
+# plt.title(f'"Take-All Strategy" (N = {N})')
+# plt.xlim(left=0)
+# plt.show()
 
-plt.hist(scores_all_in, bins = score_bins)
-plt.xlabel('Bust Score')
-plt.ylabel('Occurances')
-plt.title(f'"Take-All Strategy" (N = {N})')
-plt.xlim(left=0)
-plt.show()
+# plt.hist(dice_left_on_bust)
+# plt.xlabel('Dice Left on Bust')
+# plt.ylabel('Occurances')
+# plt.title(f'"Take-All Strategy" (N = {N})')
+# plt.xlim(left=0)
+# plt.show()
+
+# plt.hist(scores_all_in, bins = score_bins)
+# plt.xlabel('Bust Score')
+# plt.ylabel('Occurances')
+# plt.title(f'"Take-All Strategy" (N = {N})')
+# plt.xlim(left=0)
+# plt.show()
 
 
 
