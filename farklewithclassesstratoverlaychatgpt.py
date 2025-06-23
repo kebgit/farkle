@@ -319,7 +319,7 @@ plt.tight_layout()
 
 # Personal Labels
 
-plt.annotate("No-Balls Valley",
+plt.annotate("Chicken Valley",
               xy=(275, 24), 
               xytext=(210, 31), 
               arrowprops=dict(arrowstyle='->'),
