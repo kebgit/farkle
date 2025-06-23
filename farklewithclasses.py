@@ -307,7 +307,7 @@ plt.title(f'Farkle Risk Threshold Effects with {game.strategies[game.strategy]} 
 
 
 # Take All Plots
-# plt.annotate("No-Balls Valley",
+# plt.annotate("Chicken Valley",
 #               xy=(275, 23.5), 
 #               xytext=(200, 28), 
 #               arrowprops=dict(arrowstyle='->'),
